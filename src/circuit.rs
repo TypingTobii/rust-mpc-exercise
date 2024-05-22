@@ -1,11 +1,8 @@
 
-
-// An enum is a good choice for a type which can be of either one of several variants.
-// Since there is a fixed choice of gate types in a Bristol circuit, an enum is a natural
-// way to represent it.
-// A rust enum is similar to a tagged union in C/C++.
 #[derive(Debug)]
 pub enum Gate {
+    // Currently, EQ, EQW, and MAND gates are not yet implemented
+    // Each gate has one field for each input and each output, denoting the wire connected to the port, respectively
     XOR {
         input_a: u32,
         input_b: u32,
@@ -23,14 +20,16 @@ pub enum Gate {
 }
 
 
-// We can 'derive' some traits like Debug and Clone on types via a derive attribute. This is a
-// macro which expands to the corresponding trait implementation of the trait.
-// cargo-expand (https://github.com/dtolnay/cargo-expand) can show you the expanded code.
 #[derive(Debug)]
 pub struct Header {
     // Header information of a bristol circuit
+
+    // Total number of gates and total number of wires in the circuit
     num_gates: u32,
     num_wires: u32,
+
+    // Number of wires for each input/output port, with the i-th entry in the Vec corresponding to the i-th port
+    // Number of input/output ports may be inferred from the length of the Vecs
     num_input_wires: Vec<u32>,
     num_output_wires: Vec<u32>
 }
@@ -45,12 +44,12 @@ pub struct Circuit {
 impl Circuit {
     /// Parses the bristol file contents into a circuit
     pub fn parse(circuit: &str) -> Self {
-        // This method parses the circuit string representation into the Circuit type
+        // Collect all non-empty lines of the str input into a Vec
         let circuit : Vec<&str> = circuit.lines().filter(|line| line.len() > 0).collect();
-        let mut gates : Vec<Gate> = Vec::new();
 
         let header = parse_header(&circuit[0..3]);
 
+        let mut gates : Vec<Gate> = Vec::new();
         for line in &circuit[3..] {
             gates.push(parse_gate(line));
         }
@@ -59,6 +58,7 @@ impl Circuit {
     }
 }
 
+/// Parses the bristol file header, expecting to get the first three lines as an argument
 fn parse_header(header_lines: &[&str]) -> Header {
 
     let (num_gates, num_wires) = parse_header_general(header_lines[0]);
@@ -73,13 +73,14 @@ fn parse_header(header_lines: &[&str]) -> Header {
     }
 }
 
-
+/// Parses the first line of the bristol file header containing the total number of gates and the total number of wires
 fn parse_header_general(header_line: &str) -> (u32, u32) {
     let header_line : Vec<&str> = header_line.split_whitespace().collect();
     (header_line[0].parse().unwrap(),
      header_line[1].parse().unwrap())
 }
 
+/// Parses the second/third line of the bristol file header containing the number of wires per input/output
 fn parse_header_io_wires(header_line: &str) -> Vec<u32> {
     let header_line : Vec<&str> = header_line.split_whitespace().collect();
     let num_ports : usize = header_line[0].parse().unwrap();
@@ -92,6 +93,7 @@ fn parse_header_io_wires(header_line: &str) -> Vec<u32> {
     num_wires
 }
 
+/// Parses a line of the bristol file describing one gate
 fn parse_gate(gate_line: &str) -> Gate {
     let gate_line : Vec<&str> = gate_line.split_whitespace().collect();
 
@@ -104,7 +106,9 @@ fn parse_gate(gate_line: &str) -> Gate {
     }
 }
 
+/// helper function to parse a XOR gate line
 fn parse_gate_xor(gate_line_vec: &Vec<&str>) -> Gate {
+    // ensure that the number of input and output wires in the gate_line_vec is correct
     assert_eq!(gate_line_vec[0], "2", "Number of input wires must be 2 for every XOR gate");
     assert_eq!(gate_line_vec[1], "1", "Number of output wires must be 1 for every gate");
 
@@ -115,7 +119,9 @@ fn parse_gate_xor(gate_line_vec: &Vec<&str>) -> Gate {
     Gate::XOR {input_a, input_b, output}
 }
 
+/// helper function to parse a AND gate line
 fn parse_gate_and(gate_line_vec: &Vec<&str>) -> Gate {
+    // ensure that the number of input and output wires in the gate_line_vec is correct
     assert_eq!(gate_line_vec[0], "2", "Number of input wires must be 2 for every AND gate");
     assert_eq!(gate_line_vec[1], "1", "Number of output wires must be 1 for every gate");
 
@@ -126,7 +132,9 @@ fn parse_gate_and(gate_line_vec: &Vec<&str>) -> Gate {
     Gate::AND {input_a, input_b, output}
 }
 
+/// helper function to parse a NOT/INV gate line
 fn parse_gate_inv(gate_line_vec: &Vec<&str>) -> Gate {
+    // ensure that the number of input and output wires in the gate_line_vec is correct
     assert_eq!(gate_line_vec[0], "1", "Number of input wires must be 1 for every INV/NOT gate");
     assert_eq!(gate_line_vec[1], "1", "Number of output wires must be 1 for every gate");
 
