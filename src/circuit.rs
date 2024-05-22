@@ -1,5 +1,5 @@
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Gate {
     // Currently, EQ, EQW, and MAND gates are not yet implemented
     // Each gate has one field for each input and each output, denoting the wire connected to the port, respectively
@@ -20,7 +20,7 @@ pub enum Gate {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Header {
     // Header information of a bristol circuit
 
@@ -34,7 +34,7 @@ pub struct Header {
     num_output_wires: Vec<u32>
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Circuit {
     // a circuit consists of a header and the gates of a circuit
     header: Header,
@@ -149,11 +149,47 @@ fn parse_gate_inv(gate_line_vec: &[&str]) -> Gate {
 // cfg directives can achieve similar things as preprocessor directives in C/C++.
 #[cfg(test)]
 mod tests {
+    use crate::circuit::*;
 
-    // Functions marked with `#[test]` are automatically run when you execute `cargo test`.
     #[test]
-    fn test() {
-        todo!("Writing tests is good!")
+    fn test_parse_header() {
+        let input = vec!["42 1337", "3 10 20 30", "2 10 20"];
+        let output = parse_header(&input);
+
+        assert_eq!(output.num_gates, 42);
+        assert_eq!(output.num_wires, 1337);
+        assert_eq!(output.num_input_wires, vec![10, 20, 30]);
+        assert_eq!(output.num_output_wires, vec![10, 20]);
+    }
+
+    #[test]
+    fn test_parse_gate() {
+        let input_xor = "2 1 42 43 44 XOR";
+        let input_inv = "1 1 16 17 INV";
+        let output_xor = parse_gate(input_xor);
+        let output_inv = parse_gate(input_inv);
+
+        assert_eq!(output_xor, Gate::XOR {input_a: 42, input_b: 43, output: 44});
+        assert_eq!(output_inv, Gate::INV {input: 16, output: 17});
+    }
+
+    #[test]
+    fn test_parse_circuit() {
+        let input = "4 8\n\
+            4 1 1 1 1\n\
+            1 1\n\
+            \n\
+            2 1 0 1 4 AND\n\
+            2 1 2 3 5 AND\n\
+            2 1 4 5 6 AND\n\
+            1 1 6 7 INV";
+        let output = Circuit::parse(input);
+
+        assert_eq!(output.header, Header {num_gates: 4, num_wires: 8, num_input_wires: vec![1, 1, 1, 1], num_output_wires: vec![1]});
+        assert_eq!(output.gates[0], Gate::AND {input_a: 0, input_b: 1, output: 4});
+        assert_eq!(output.gates[1], Gate::AND {input_a: 2, input_b: 3, output: 5});
+        assert_eq!(output.gates[2], Gate::AND {input_a: 4, input_b: 5, output: 6});
+        assert_eq!(output.gates[3], Gate::INV {input: 6, output: 7});
     }
 
 }
