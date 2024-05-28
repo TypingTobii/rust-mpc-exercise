@@ -192,4 +192,31 @@ mod tests {
         assert_eq!(output.gates[3], Gate::INV { input: 6, output: 7 });
     }
 
+    #[test]
+    fn test_parse_big_circuit() {
+        let input = read_to_string("res/aes_128.txt").unwrap();
+        let output = Circuit::parse(&input);
+
+        // Simple plausibility check: Assert that all gates have been parsed
+        assert_eq!(
+            output.gates.iter().filter(
+                |g| matches!(g, Gate::AND {input_a:_, input_b:_, output:_} )
+            ).count(),
+            6400
+        );
+
+        assert_eq!(
+            output.gates.iter().filter(
+                |g| matches!(g, Gate::XOR {input_a:_, input_b:_, output:_} )
+            ).count(),
+            28176
+        );
+
+        assert_eq!(
+            output.gates.iter().filter(
+                |g| matches!(g, Gate::INV {input:_, output:_} )
+            ).count(),
+            2087
+        );
+    }
 }
