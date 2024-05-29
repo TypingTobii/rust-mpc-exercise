@@ -1,3 +1,25 @@
+use thiserror::Error;
+use ParserError::*;
+
+#[derive(Error, Debug)]
+pub enum ParserError {
+    #[error("Invalid entry at line {line}: {description:?}")]
+    InvalidEntry { line: u32, description: String },
+
+    #[error("Syntax error at line {line}: {description:?}")]
+    SyntaxError { line: u32, description: String },
+
+    #[error("Unexpected token at line {line}: expected {expected:?} but got {got:?}")]
+    UnexpectedToken { line: u32, expected: TokenType, got: String },
+}
+
+#[derive(Debug)]
+pub enum TokenType {
+    NonNegativeNumber,
+    GateIdentifier,
+}
+
+
 #[derive(Debug, PartialEq)]
 pub enum Gate {
     // Currently, EQ, EQW, and MAND gates are not yet implemented
@@ -142,6 +164,17 @@ fn parse_gate_inv(gate_line: &[&str]) -> Gate {
     let output: u32 = gate_line[3].parse().unwrap();
 
     Gate::INV { input, output }
+}
+/// try to get the next element from an iterator or return a SyntaxError if there is no next element
+fn get_next_or_error<I, T>(iter: &mut I, line: u32, error_msg: &str) -> Result<T, ParserError>
+    where I: Iterator<Item=T> {
+    iter.next().ok_or_else(|| SyntaxError { line, description: error_msg.to_string() })
+}
+fn parse_non_negative_number(text: &str, line: u32) -> Result<u32, ParserError> {
+    match text.parse() {
+        Ok(parsed) => Ok(parsed),
+        _ => Err(UnexpectedToken { line, expected: TokenType::NonNegativeNumber, got: text.to_string() })
+    }
 }
 
 // A `#[cfg(test)]` marks the following block as conditionally included only for test builds.
